@@ -4,10 +4,11 @@
 # 插件挂载声明：DSH 启动时把本插件插进 profile 的配置树。
 # 主机半边会注册 POST /plugin/session-delete，浏览器半边往会话标题栏放按钮。
 #
-# 安装（本地开发，link 到源码目录）：
-#   dsh plugin --profile desktop add "link:D:\dsh-plugins\dsh-session-delete"
-# 然后在 <DSH_HOME>/profiles/desktop/package.json 的 dsh.profile.bundles 里
-# 加上 "dsh-session-delete"，重启 DSH 生效。
+# 安装：
+#   dsh plugin --profile desktop add "git+https://github.com/yueshao-hash/dsh-session-delete.git"
+# 改源码调试时用 link 指到本地目录：
+#   dsh plugin --profile desktop add "link:<你的源码目录>"
+# 装完重启 DSH 生效（客户端 bundle 在启动时构图）。
 #
 # ⚠️ `name:` 必须与安装后的包名完全一致（这里是 dsh-session-delete）。
 # ============================================================================

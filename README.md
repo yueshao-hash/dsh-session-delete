@@ -38,7 +38,7 @@ lib/index.js    主机半边：注册 POST /plugin/session-delete，node:fs 删�
 lib/client.js   浏览器半边：右键菜单项（ctx.contextMenus）+ 确认弹窗（槽 shell.overlay）
                 + 标题栏按钮（槽 conversation.session.header.actions）
 cordis.patch.yml  插件装载条目
-test/index.test.mjs  主机半边单测（15 例，夹具全部落在 D:\dsh-work 下）
+test/index.test.mjs  主机半边单测（15 例，夹具默认落系统临时目录）
 test/client.test.mjs 浏览器半边接线测试（6 例，stub 掉 window.__ModuleLoader__）
 ```
 
@@ -47,21 +47,43 @@ test/client.test.mjs 浏览器半边接线测试（6 例，stub 掉 window.__Mod
 
 ## 安装 / 卸载
 
+从 GitHub 装（不需要 npm，也不要求源码在本机）：
+
 ```powershell
-dsh plugin --profile desktop add "link:D:\dsh-plugins\dsh-session-delete"
+dsh plugin --profile desktop add "git+https://github.com/yueshao-hash/dsh-session-delete.git"
 dsh plugin --profile desktop remove dsh-session-delete
 ```
 
-或在 `D:\dsh-home\profiles\desktop\package.json` 里手工加 `dependencies` +
-`dsh.profile.bundles` 条目。
+自己改源码调试时，把 spec 换成 `link:<你的目录>`：
+
+```powershell
+dsh plugin --profile desktop add "link:<你的源码目录>"
+```
+
+装完**重启 DeepSeek Harness**。也可以手改 `<DSH_HOME>/profiles/desktop/package.json`：
+`dependencies` 加一条 spec，`dsh.profile.bundles` 加 `"dsh-session-delete"`。
+
+插件不关心自己装在哪：会话根目录是运行时从宿主的 `ctx.sessionPersistence.root`
+读的（读不到才退回 `$DSH_HOME/sessions`），装在哪个盘、哪个目录都一样。
 
 ## 测试
 
+在包目录下跑（不需要 DSH 在运行）：
+
 ```powershell
-& "D:\dsh-home\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe" `
-  "D:\dsh-plugins\dsh-session-delete\test\index.test.mjs"
-& "D:\dsh-home\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe" `
-  "D:\dsh-plugins\dsh-session-delete\test\client.test.mjs"
+node test/index.test.mjs
+node test/client.test.mjs
+```
+
+夹具默认建在系统临时目录（`os.tmpdir()`），跑完自动删；想指定位置就设
+`DSD_TEST_SCRATCH`：
+
+```powershell
+# Windows
+$env:DSD_TEST_SCRATCH = "<你想放夹具的目录>"
+node test/index.test.mjs
+# macOS / Linux
+DSD_TEST_SCRATCH=/tmp/dsd node test/index.test.mjs
 ```
 
 主机半边 15 例（含根目录解析、跨项目目录删除、句柄重试、路由状态码、

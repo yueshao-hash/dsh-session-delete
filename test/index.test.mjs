@@ -5,6 +5,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 
@@ -23,8 +24,8 @@ async function test(name, body) {
 
 const SID = '09c37dd0-4e4a-4717-aaa4-9a2eaba1f532';
 
-/** 测试夹具一律落 D 盘（本机规矩：绝不写 C 盘，连 %TEMP% 也不行）。 */
-const SCRATCH = 'D:\\dsh-work';
+/** 夹具目录：默认系统临时目录；想放别处就设 DSD_TEST_SCRATCH（跑完自动清）。 */
+const SCRATCH = process.env.DSD_TEST_SCRATCH || join(tmpdir(), 'dsh-session-delete-tests');
 const created = [];
 
 /** 造一个假 root：<root>/<proj>/<sid>/session.v4.jsonl.zstd */
@@ -48,14 +49,14 @@ await test('ENDPOINT 固定为 /plugin/session-delete', () => {
 });
 
 await test('sessionRoot 优先用 ctx.sessionPersistence.root', () => {
-  assert.equal(sessionRoot({ sessionPersistence: { root: 'D:/x/sessions' } }), 'D:/x/sessions');
+  assert.equal(sessionRoot({ sessionPersistence: { root: '/fake/sessions' } }), '/fake/sessions');
 });
 
 await test('sessionRoot 退路是 DSH_HOME/sessions', () => {
   const previous = process.env.DSH_HOME;
-  process.env.DSH_HOME = 'D:/dsh-home';
+  process.env.DSH_HOME = '/fake-home';
   try {
-    assert.equal(sessionRoot({}), join('D:/dsh-home', 'sessions'));
+    assert.equal(sessionRoot({}), join('/fake-home', 'sessions'));
   } finally {
     if (previous === undefined) delete process.env.DSH_HOME;
     else process.env.DSH_HOME = previous;
@@ -77,9 +78,9 @@ function cordisLikeCtx(source = {}) {
 
 await test('sessionRoot: 服务读不到（cordis 未注入）时退回 DSH_HOME', () => {
   const previous = process.env.DSH_HOME;
-  process.env.DSH_HOME = 'D:/dsh-home';
+  process.env.DSH_HOME = '/fake-home';
   try {
-    assert.equal(sessionRoot(cordisLikeCtx()), join('D:/dsh-home', 'sessions'));
+    assert.equal(sessionRoot(cordisLikeCtx()), join('/fake-home', 'sessions'));
   } finally {
     if (previous === undefined) delete process.env.DSH_HOME;
     else process.env.DSH_HOME = previous;
@@ -200,7 +201,7 @@ await test('handle: 请求体过大 → 400', async () => {
   req.method = 'POST';
   req.headers = {};
   const res = { setHeader() {}, end() { this.finished = true; } };
-  await handle({ sessionPersistence: { root: 'D:/x' } }, req, res);
+  await handle({ sessionPersistence: { root: '/fake' } }, req, res);
   assert.equal(res.statusCode, 400);
 });
 
